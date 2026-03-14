@@ -1,6 +1,7 @@
 package app
 
 import (
+	"io"
 	"net/http"
 )
 
@@ -28,9 +29,34 @@ func (a *Application) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// IngestEvent handles POST of a single TelemetryEvent (placeholder).
-func (a *Application) IngestEvent(w http.ResponseWriter, _ *http.Request) {
-	w.WriteHeader(http.StatusNotImplemented)
+// IngestEvent handles POST of a single TelemetryEvent: parse and validate payload,
+// serialise as NDJSON gzip, then store at the path from FormatStoragePath.
+func (a *Application) IngestEvent(w http.ResponseWriter, r *http.Request) {
+	body, err := io.ReadAll(r.Body)
+	if err != nil {
+		http.Error(w, "read body", http.StatusBadRequest)
+		return
+	}
+	event, err := ParseAndValidateTelemetryEvent(string(body))
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	path, err := FormatStoragePath(event)
+	if err != nil {
+		http.Error(w, "storage path", http.StatusInternalServerError)
+		return
+	}
+	data, err := SerializeEventNDJSONGzip(event)
+	if err != nil {
+		http.Error(w, "serialise event", http.StatusInternalServerError)
+		return
+	}
+	if err := a.deps.EventStorer.StoreEventIfNotExists(path, data); err != nil {
+		http.Error(w, "store event", http.StatusInternalServerError)
+		return
+	}
+	w.WriteHeader(http.StatusCreated)
 }
 
 // AnalysisReport handles GET and returns an AnalysisReport (placeholder).
