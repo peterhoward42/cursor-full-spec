@@ -1,15 +1,15 @@
 # Generate the backbone code
 
 ## Objective
-- To create the starter code that will shape the architectural skeleton for the system described in ./overview-content.md
-- To establish the use of various design and coding patterns defined in my cursor skills
+- To create the starter code that will shape the architectural skeleton for the system described in ./specs/overview-context.md
+- To establish the use of various design and coding patterns defined in my cursor skills as a side effect
 
 ## Non objectives
 - Do not provide any system behaviour implementation beyond the architectural framing and placeholder http handlers
 
 ## Skills to use
 
-In addition to the skills that you automomously discover and decide to use, place particular imphasis on the following for this step:
+In addition to the skills that you automomously discover and decide to use, place particular emphasis on the following for this step:
 
 - http-handler-dependency-injection
 - go-coding
