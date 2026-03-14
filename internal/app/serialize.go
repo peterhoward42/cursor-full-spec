@@ -42,7 +42,7 @@ func ParseNDJSONGzip(data []byte) (*TelemetryEvent, error) {
 	if err != nil {
 		return nil, fmt.Errorf("gzip reader: %w", err)
 	}
-	defer r.Close()
+	defer func() { _ = r.Close() }()
 	dec := json.NewDecoder(r)
 	var event TelemetryEvent
 	if err := dec.Decode(&event); err != nil && err != io.EOF {
