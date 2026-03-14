@@ -9,6 +9,38 @@ import (
 	"testing"
 )
 
+func TestApplication_CORS_ReturnsNoContentWithCORSHeaders(t *testing.T) {
+	t.Parallel()
+	deps := Dependencies{
+		EventStorer: &FakeEventStorer{},
+		EventGetter: &FakeEventGetter{},
+	}
+	app := NewApplication(deps)
+	req := httptest.NewRequest(http.MethodOptions, "/", nil)
+	rec := httptest.NewRecorder()
+
+	app.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusNoContent {
+		t.Errorf("CORS(OPTIONS) status = %d, want %d", rec.Code, http.StatusNoContent)
+	}
+	if got := rec.Header().Get("Access-Control-Allow-Origin"); got != "*" {
+		t.Errorf("Access-Control-Allow-Origin = %q, want *", got)
+	}
+	if got := rec.Header().Get("Access-Control-Allow-Methods"); got != "GET, POST, OPTIONS" {
+		t.Errorf("Access-Control-Allow-Methods = %q, want GET, POST, OPTIONS", got)
+	}
+	if got := rec.Header().Get("Access-Control-Allow-Headers"); got != "Content-Type" {
+		t.Errorf("Access-Control-Allow-Headers = %q, want Content-Type", got)
+	}
+	if got := rec.Header().Get("Access-Control-Max-Age"); got != "86400" {
+		t.Errorf("Access-Control-Max-Age = %q, want 86400", got)
+	}
+	if rec.Body.Len() != 0 {
+		t.Errorf("CORS response body length = %d, want 0", rec.Body.Len())
+	}
+}
+
 func TestApplication_ServeHTTP_GET_returnsReport(t *testing.T) {
 	t.Parallel()
 	deps := Dependencies{

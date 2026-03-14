@@ -82,7 +82,12 @@ func (a *Application) AnalysisReport(w http.ResponseWriter, _ *http.Request) {
 	_, _ = w.Write(data)
 }
 
-// CORS handles OPTIONS with a CORS response for browser requests (placeholder).
+// CORS handles OPTIONS preflight: responds with CORS headers and 204 No Content.
+// CORS headers are sent only for OPTIONS, not for GET or POST.
 func (a *Application) CORS(w http.ResponseWriter, _ *http.Request) {
-	w.WriteHeader(http.StatusOK)
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+	w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
+	w.Header().Set("Access-Control-Max-Age", "86400")
+	w.WriteHeader(http.StatusNoContent)
 }
