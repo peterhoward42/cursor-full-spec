@@ -18,6 +18,17 @@ type TelemetryEvent struct {
 	Parameters    string
 }
 
+const (
+	EventLaunched              = "launched"
+	EventLoadedExample         = "loaded-example"
+	EventSignInStarted         = "sign-in-started"
+	EventSignInSuccess         = "sign-in-success"
+	EventCreatedNewDrawing     = "created-new-drawing"
+	EventRetrievedSavedDrawing = "retreived-save-drawing"
+	EventRecoverableJSError    = "recoverable-javascript-error"
+	EventFatalJSError          = "fatal-javascript-error"
+)
+
 // FormatStoragePath returns the slash-delimited storage path for the given TelemetryEvent.
 //
 // The format is:
