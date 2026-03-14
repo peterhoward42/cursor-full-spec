@@ -6,7 +6,7 @@
 - To implement the following behaviour in the Appliction.IngestEvent
     - Parse and validate the request payload (use the existing ParseAndValidateTelemetryEvent)
     - Serialise the validated TelemetryEvent as NDJSON gzip compressed
-    - Write the serialised event to storage using the existing GCSEventStorer
+    - Write the serialised event to storage using the injected EventStorer
     - Use the existing FormatStoragePath function to generate the storage path argument required by the EventStorer
 
 ## Instructions

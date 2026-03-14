@@ -32,7 +32,8 @@ const (
 // FormatStoragePath returns the slash-delimited storage path for the given TelemetryEvent.
 //
 // The format is:
-//   events/year/month/day/hour/<ulid>
+//
+//	events/year/month/day/hour/<ulid>
 //
 // where the year, month, day and hour components are derived from the event's TimeUTC
 // field (RFC3339, in UTC) and the ULID comes from EventULID.
@@ -61,4 +62,3 @@ func FormatStoragePath(event *TelemetryEvent) (string, error) {
 	path := fmt.Sprintf("events/%04d/%02d/%02d/%02d/%s", year, int(month), day, hour, event.EventULID)
 	return path, nil
 }
-
