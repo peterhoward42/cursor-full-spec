@@ -19,7 +19,7 @@
 - Define the following "EventGetter" interface:
 
 ```
-GetAllStoredEvents() (event *[]TelemetryEvent), error)
+GetAllStoredEvents() (event []TelemetryEvent), error)
 ```
 
 - Generate the code for a fake test-double implementation of the EventGetter interface
