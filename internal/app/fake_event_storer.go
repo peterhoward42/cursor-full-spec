@@ -13,8 +13,13 @@ type StoredCall struct {
 	Event *TelemetryEvent
 }
 
-// StoreEventIfNotExists records the path and event and returns nil.
+// StoreEventIfNotExists records the path and event only if path is not already in Stored; otherwise does nothing. Returns nil.
 func (f *FakeEventStorer) StoreEventIfNotExists(path string, event *TelemetryEvent) error {
+	for _, c := range f.Stored {
+		if c.Path == path {
+			return nil
+		}
+	}
 	f.Stored = append(f.Stored, StoredCall{Path: path, Event: event})
 	return nil
 }

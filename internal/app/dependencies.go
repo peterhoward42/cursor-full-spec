@@ -1,7 +1,7 @@
 package app
 
 // EventStorer stores telemetry events at a given path.
-// StoreEventIfNotExists stores the event only if nothing exists at path; it returns an error on conflict or failure.
+// StoreEventIfNotExists stores the event only if nothing exists at path; if something already exists at path, it does nothing and returns nil. It returns an error only on failure.
 type EventStorer interface {
 	StoreEventIfNotExists(path string, event *TelemetryEvent) error
 }
