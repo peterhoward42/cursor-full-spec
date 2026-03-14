@@ -8,7 +8,9 @@ import (
 
 func TestApplication_ServeHTTP_GET_returnsNotImplemented(t *testing.T) {
 	// Given: Application with empty Dependencies (placeholder behaviour).
-	deps := Dependencies{}
+	deps := Dependencies{
+		EventStorer: &FakeEventStorer{},
+	}
 	app := NewApplication(deps)
 	req := httptest.NewRequest(http.MethodGet, "/", nil)
 	rec := httptest.NewRecorder()

@@ -8,7 +8,7 @@
 ## Objective
 
 - To define an interface for storing TelemetryEvents
-- To introduce the interface to the Dependency struct
+- To add a EventStorer field to the Dependency struct
 - To implement a fake, test double implementation of the interface
 
 ## Non objectives
@@ -19,7 +19,7 @@
 - Define the following "EventStorer" interface:
 
 ```
-StoreEventIfNotExists(event *TelemetryEvent) error
+StoreEventIfNotExists(path string, event *TelemetryEvent) error
 ```
 
 - Generate the code for a fake test-double implementation of the EventStorer interface

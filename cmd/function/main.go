@@ -10,7 +10,9 @@ import (
 )
 
 func main() {
-	deps := app.Dependencies{}
+	deps := app.Dependencies{
+		EventStorer: &app.FakeEventStorer{},
+	}
 	a := app.NewApplication(deps)
 	functions.HTTP("Function", a.ServeHTTP)
 	port := os.Getenv("PORT")
