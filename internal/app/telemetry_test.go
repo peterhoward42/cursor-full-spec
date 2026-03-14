@@ -3,12 +3,8 @@ package app
 import "testing"
 
 func TestFormatStoragePath_HappyPath(t *testing.T) {
-	event := &TelemetryEvent{
-		EventULID: "01ARZ3NDEKTSV4RRFFQ69G5FAV",
-		TimeUTC:   "2025-03-14T09:30:00Z",
-	}
-
-	got, err := FormatStoragePath(event)
+	event := validTelemetryEvent()
+	got, err := FormatStoragePath(&event)
 	if err != nil {
 		t.Fatalf("FormatStoragePath() error = %v, want nil", err)
 	}
@@ -30,12 +26,9 @@ func TestFormatStoragePath_NilEvent(t *testing.T) {
 func TestFormatStoragePath_InvalidTime(t *testing.T) {
 	t.Parallel()
 
-	event := &TelemetryEvent{
-		EventULID: "01ARZ3NDEKTSV4RRFFQ69G5FAV",
-		TimeUTC:   "not-a-time",
-	}
-
-	if _, err := FormatStoragePath(event); err == nil {
+	event := validTelemetryEvent()
+	event.TimeUTC = "not-a-time"
+	if _, err := FormatStoragePath(&event); err == nil {
 		t.Errorf("FormatStoragePath() error = nil for invalid time, want non-nil")
 	}
 }

@@ -6,10 +6,10 @@ import (
 	"testing"
 )
 
-func TestParseAndValidateTelemetryEvent_HappyPath(t *testing.T) {
-	t.Parallel()
-
-	event := TelemetryEvent{
+// validTelemetryEvent returns a canonical valid TelemetryEvent for use in tests.
+// Callers may copy and mutate it for malformed or special cases.
+func validTelemetryEvent() TelemetryEvent {
+	return TelemetryEvent{
 		SchemaVersion: 1,
 		EventULID:     "01ARZ3NDEKTSV4RRFFQ69G5FAV",
 		ProxyUserID:   "3fa85f64-5717-4562-b3fc-2c963f66afa6",
@@ -18,13 +18,25 @@ func TestParseAndValidateTelemetryEvent_HappyPath(t *testing.T) {
 		Event:         EventLaunched,
 		Parameters:    "example-parameters",
 	}
+}
 
-	payloadBytes, err := json.Marshal(event)
+// mustMarshalEvent marshals e to JSON and returns the string, or calls t.Fatal on error.
+func mustMarshalEvent(t *testing.T, e TelemetryEvent) string {
+	t.Helper()
+	b, err := json.Marshal(e)
 	if err != nil {
-		t.Fatalf("json.Marshal() error = %v, want nil", err)
+		t.Fatalf("json.Marshal() error = %v", err)
 	}
+	return string(b)
+}
 
-	got, err := ParseAndValidateTelemetryEvent(string(payloadBytes))
+func TestParseAndValidateTelemetryEvent_HappyPath(t *testing.T) {
+	t.Parallel()
+
+	event := validTelemetryEvent()
+	payload := mustMarshalEvent(t, event)
+
+	got, err := ParseAndValidateTelemetryEvent(payload)
 	if err != nil {
 		t.Fatalf("ParseAndValidateTelemetryEvent() error = %v, want nil", err)
 	}
@@ -45,7 +57,11 @@ func TestParseAndValidateTelemetryEvent_EmptyPayload(t *testing.T) {
 func TestParseAndValidateTelemetryEvent_InvalidJSON(t *testing.T) {
 	t.Parallel()
 
-	if _, err := ParseAndValidateTelemetryEvent("{invalid-json"); err == nil {
+	// Use a truncated valid payload so we exercise parse failure without embedding raw JSON.
+	valid := mustMarshalEvent(t, validTelemetryEvent())
+	invalidPayload := valid[:len(valid)/2]
+
+	if _, err := ParseAndValidateTelemetryEvent(invalidPayload); err == nil {
 		t.Fatalf("ParseAndValidateTelemetryEvent() error = nil for invalid JSON, want non-nil")
 	}
 }
@@ -53,25 +69,30 @@ func TestParseAndValidateTelemetryEvent_InvalidJSON(t *testing.T) {
 func TestParseAndValidateTelemetryEvent_UnknownField(t *testing.T) {
 	t.Parallel()
 
-	payload := `{"SchemaVersion":1,"EventULID":"01ARZ3NDEKTSV4RRFFQ69G5FAV","ProxyUserID":"123e4567-e89b-12d3-a456-426614174000","TimeUTC":"2025-03-14T09:30:00Z","Visit":1,"Event":"launched","Parameters":"ok","Unexpected":"value"}`
+	event := validTelemetryEvent()
+	event.Visit = 1
+	event.Parameters = "ok"
+	b, err := json.Marshal(event)
+	if err != nil {
+		t.Fatalf("json.Marshal() error = %v", err)
+	}
+	var m map[string]any
+	if err := json.Unmarshal(b, &m); err != nil {
+		t.Fatalf("json.Unmarshal() error = %v", err)
+	}
+	m["Unexpected"] = "value"
+	payloadWithUnknown, err := json.Marshal(m)
+	if err != nil {
+		t.Fatalf("json.Marshal(modified) error = %v", err)
+	}
 
-	if _, err := ParseAndValidateTelemetryEvent(payload); err == nil {
+	if _, err := ParseAndValidateTelemetryEvent(string(payloadWithUnknown)); err == nil {
 		t.Fatalf("ParseAndValidateTelemetryEvent() error = nil for payload with unknown field, want non-nil")
 	}
 }
 
 func TestParseAndValidateTelemetryEvent_FieldValidations(t *testing.T) {
 	t.Parallel()
-
-	base := TelemetryEvent{
-		SchemaVersion: 1,
-		EventULID:     "01ARZ3NDEKTSV4RRFFQ69G5FAV",
-		ProxyUserID:   "3fa85f64-5717-4562-b3fc-2c963f66afa6",
-		TimeUTC:       "2025-03-14T09:30:00Z",
-		Visit:         1,
-		Event:         EventLaunched,
-		Parameters:    "ok",
-	}
 
 	cases := []struct {
 		name    string
@@ -184,15 +205,13 @@ func TestParseAndValidateTelemetryEvent_FieldValidations(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			ev := base
+			ev := validTelemetryEvent()
+			ev.Visit = 1
+			ev.Parameters = "ok"
 			tc.mutate(&ev)
 
-			payloadBytes, err := json.Marshal(ev)
-			if err != nil {
-				t.Fatalf("json.Marshal() error = %v, want nil", err)
-			}
-
-			_, err = ParseAndValidateTelemetryEvent(string(payloadBytes))
+			payload := mustMarshalEvent(t, ev)
+			_, err := ParseAndValidateTelemetryEvent(payload)
 			if (err != nil) != tc.wantErr {
 				t.Fatalf("ParseAndValidateTelemetryEvent() error = %v, wantErr = %v", err, tc.wantErr)
 			}
