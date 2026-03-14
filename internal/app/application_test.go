@@ -1,6 +1,7 @@
 package app
 
 import (
+	"encoding/json"
 	"errors"
 	"net/http"
 	"net/http/httptest"
@@ -8,9 +9,8 @@ import (
 	"testing"
 )
 
-func TestApplication_ServeHTTP_GET_returnsNotImplemented(t *testing.T) {
+func TestApplication_ServeHTTP_GET_returnsReport(t *testing.T) {
 	t.Parallel()
-	// Given: Application with empty Dependencies (placeholder behaviour).
 	deps := Dependencies{
 		EventStorer: &FakeEventStorer{},
 		EventGetter: &FakeEventGetter{},
@@ -19,12 +19,86 @@ func TestApplication_ServeHTTP_GET_returnsNotImplemented(t *testing.T) {
 	req := httptest.NewRequest(http.MethodGet, "/", nil)
 	rec := httptest.NewRecorder()
 
-	// When: GET request is handled.
 	app.ServeHTTP(rec, req)
 
-	// Then: placeholder responds with 501 (derived from "no implementation yet").
-	if rec.Code != http.StatusNotImplemented {
-		t.Errorf("ServeHTTP(GET) status = %d, want %d", rec.Code, http.StatusNotImplemented)
+	if rec.Code != http.StatusOK {
+		t.Errorf("ServeHTTP(GET) status = %d, want %d", rec.Code, http.StatusOK)
+	}
+	if rec.Header().Get("Content-Type") != "application/json" {
+		t.Errorf("Content-Type = %q, want application/json", rec.Header().Get("Content-Type"))
+	}
+	var report AnalysisReport
+	if err := json.Unmarshal(rec.Body.Bytes(), &report); err != nil {
+		t.Fatalf("response body not valid JSON: %v", err)
+	}
+	assertReportZero(report, t)
+}
+
+func TestApplication_AnalysisReport_EventGetterError_Returns500(t *testing.T) {
+	t.Parallel()
+	deps := Dependencies{
+		EventStorer: &FakeEventStorer{},
+		EventGetter: &FakeEventGetter{GetErr: errors.New("get failed")},
+	}
+	app := NewApplication(deps)
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	rec := httptest.NewRecorder()
+
+	app.AnalysisReport(rec, req)
+
+	if rec.Code != http.StatusInternalServerError {
+		t.Errorf("AnalysisReport(EventGetter error) status = %d, want %d", rec.Code, http.StatusInternalServerError)
+	}
+}
+
+func TestApplication_AnalysisReport_EmptyEvents_Returns200AndZeroReport(t *testing.T) {
+	t.Parallel()
+	getter := &FakeEventGetter{Events: []TelemetryEvent{}}
+	deps := Dependencies{EventStorer: &FakeEventStorer{}, EventGetter: getter}
+	app := NewApplication(deps)
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	rec := httptest.NewRecorder()
+
+	app.AnalysisReport(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Errorf("AnalysisReport(empty events) status = %d, want %d", rec.Code, http.StatusOK)
+	}
+	var report AnalysisReport
+	if err := json.Unmarshal(rec.Body.Bytes(), &report); err != nil {
+		t.Fatalf("response body not valid JSON: %v", err)
+	}
+	assertReportZero(report, t)
+}
+
+func TestApplication_AnalysisReport_WithEvents_Returns200AndReportFromAnalyser(t *testing.T) {
+	t.Parallel()
+	events := []TelemetryEvent{
+		eventWith(EventLaunched, "user-a"),
+		eventWith(EventLaunched, "user-b"),
+		eventWith(EventRecoverableJSError, ""),
+	}
+	getter := &FakeEventGetter{Events: events}
+	deps := Dependencies{EventStorer: &FakeEventStorer{}, EventGetter: getter}
+	app := NewApplication(deps)
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	rec := httptest.NewRecorder()
+
+	app.AnalysisReport(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Errorf("AnalysisReport(events) status = %d, want %d", rec.Code, http.StatusOK)
+	}
+	var report AnalysisReport
+	if err := json.Unmarshal(rec.Body.Bytes(), &report); err != nil {
+		t.Fatalf("response body not valid JSON: %v", err)
+	}
+	// Orchestration: EventGetter events were passed to AnalyseEvents and response matches.
+	if report.HowManyPeopleHave.Launched != 2 {
+		t.Errorf("HowManyPeopleHave.Launched = %d, want 2", report.HowManyPeopleHave.Launched)
+	}
+	if report.TotalRecoverableErrors != 1 {
+		t.Errorf("TotalRecoverableErrors = %d, want 1", report.TotalRecoverableErrors)
 	}
 }
 

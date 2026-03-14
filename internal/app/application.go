@@ -1,6 +1,7 @@
 package app
 
 import (
+	"encoding/json"
 	"io"
 	"net/http"
 )
@@ -59,9 +60,26 @@ func (a *Application) IngestEvent(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusCreated)
 }
 
-// AnalysisReport handles GET and returns an AnalysisReport (placeholder).
+// AnalysisReport handles GET: fetches all stored events via EventGetter, builds an AnalysisReport with AnalyseEvents, and returns it as JSON.
 func (a *Application) AnalysisReport(w http.ResponseWriter, _ *http.Request) {
-	w.WriteHeader(http.StatusNotImplemented)
+	events, err := a.deps.EventGetter.GetAllStoredEvents()
+	if err != nil {
+		http.Error(w, "get events", http.StatusInternalServerError)
+		return
+	}
+	report, err := AnalyseEvents(events)
+	if err != nil {
+		http.Error(w, "analysis", http.StatusInternalServerError)
+		return
+	}
+	data, err := json.Marshal(report)
+	if err != nil {
+		http.Error(w, "encode", http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	_, _ = w.Write(data)
 }
 
 // CORS handles OPTIONS with a CORS response for browser requests (placeholder).
