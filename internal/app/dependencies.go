@@ -6,8 +6,14 @@ type EventStorer interface {
 	StoreEventIfNotExists(path string, data []byte) error
 }
 
+// EventGetter provides access to all stored TelemetryEvents.
+type EventGetter interface {
+	GetAllStoredEvents() ([]TelemetryEvent, error)
+}
+
 // Dependencies holds interfaces to external systems.
 // Start empty; add fields only when required by application behaviour.
 type Dependencies struct {
-	EventStorer EventStorer
+	EventStorer  EventStorer
+	EventGetter  EventGetter
 }

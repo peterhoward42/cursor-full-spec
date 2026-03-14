@@ -12,6 +12,7 @@ import (
 func main() {
 	deps := app.Dependencies{
 		EventStorer: &app.FakeEventStorer{},
+		EventGetter: &app.FakeEventGetter{},
 	}
 	a := app.NewApplication(deps)
 	functions.HTTP("Function", a.ServeHTTP)

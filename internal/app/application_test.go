@@ -13,6 +13,7 @@ func TestApplication_ServeHTTP_GET_returnsNotImplemented(t *testing.T) {
 	// Given: Application with empty Dependencies (placeholder behaviour).
 	deps := Dependencies{
 		EventStorer: &FakeEventStorer{},
+		EventGetter: &FakeEventGetter{},
 	}
 	app := NewApplication(deps)
 	req := httptest.NewRequest(http.MethodGet, "/", nil)
@@ -37,7 +38,7 @@ func TestApplication_IngestEvent_HappyPath(t *testing.T) {
 		t.Fatalf("FormatStoragePath() error = %v", err)
 	}
 	storer := &FakeEventStorer{}
-	deps := Dependencies{EventStorer: storer}
+	deps := Dependencies{EventStorer: storer, EventGetter: &FakeEventGetter{}}
 	app := NewApplication(deps)
 	req := httptest.NewRequest(http.MethodPost, "/", strings.NewReader(payload))
 	rec := httptest.NewRecorder()
@@ -67,7 +68,7 @@ func TestApplication_IngestEvent_HappyPath(t *testing.T) {
 func TestApplication_IngestEvent_InvalidPayload_Returns400(t *testing.T) {
 	t.Parallel()
 	storer := &FakeEventStorer{}
-	deps := Dependencies{EventStorer: storer}
+	deps := Dependencies{EventStorer: storer, EventGetter: &FakeEventGetter{}}
 	app := NewApplication(deps)
 	req := httptest.NewRequest(http.MethodPost, "/", strings.NewReader("   "))
 	rec := httptest.NewRecorder()
@@ -85,7 +86,7 @@ func TestApplication_IngestEvent_InvalidPayload_Returns400(t *testing.T) {
 func TestApplication_IngestEvent_ValidationError_Returns400(t *testing.T) {
 	t.Parallel()
 	storer := &FakeEventStorer{}
-	deps := Dependencies{EventStorer: storer}
+	deps := Dependencies{EventStorer: storer, EventGetter: &FakeEventGetter{}}
 	app := NewApplication(deps)
 	req := httptest.NewRequest(http.MethodPost, "/", strings.NewReader(`{"invalid": true}`))
 	rec := httptest.NewRecorder()
@@ -103,7 +104,7 @@ func TestApplication_IngestEvent_ValidationError_Returns400(t *testing.T) {
 func TestApplication_IngestEvent_StorerError_Returns500(t *testing.T) {
 	t.Parallel()
 	storer := &FakeEventStorer{StoreErr: errors.New("storage unavailable")}
-	deps := Dependencies{EventStorer: storer}
+	deps := Dependencies{EventStorer: storer, EventGetter: &FakeEventGetter{}}
 	event := validTelemetryEvent()
 	payload := mustMarshalEvent(t, event)
 	app := NewApplication(deps)
@@ -125,7 +126,7 @@ func TestApplication_IngestEvent_IdempotentWhenAlreadyStored(t *testing.T) {
 	event := validTelemetryEvent()
 	payload := mustMarshalEvent(t, event)
 	storer := &FakeEventStorer{}
-	deps := Dependencies{EventStorer: storer}
+	deps := Dependencies{EventStorer: storer, EventGetter: &FakeEventGetter{}}
 	app := NewApplication(deps)
 
 	// First POST: stored.
